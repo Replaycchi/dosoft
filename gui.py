@@ -244,7 +244,11 @@ class OrganizerGUI:
         
         self.btn_close_all = ctk.CTkButton(self.frame_actions, text=self.app.i18n.t("btn_close_team", "Fermer Team"), fg_color="#c0392b", hover_color="#e74c3c", command=self.close_all_and_refresh, width=120)
         self.btn_close_all.pack(side="right", padx=10)
-        
+
+        self.btn_copy_invite = ctk.CTkButton(self.frame_actions, text=self.app.i18n.t("btn_copy_invite", "📋 Copier /invite"), fg_color="#27ae60", hover_color="#2ecc71", command=self.copy_invite_command, width=120)
+        self.btn_copy_invite.pack(side="right", padx=10)
+        self.bind_i18n_tooltip(self.btn_copy_invite, "tooltip_copy_invite", "Copier la commande pour inviter la team sélectionnée en groupe")
+
         self.btn_reset = ctk.CTkButton(self.frame_actions, text=self.app.i18n.t("btn_reset_settings", "Reset Settings"), fg_color="#7f8c8d", hover_color="#95a5a6", command=self.reset_all, width=120)
         self.btn_reset.pack(side="right", padx=10)
 
@@ -301,6 +305,7 @@ class OrganizerGUI:
         self.lbl_keyboard_shortcuts.configure(text=self.app.i18n.t("label_keyboard_shortcuts", "Raccourcis Clavier"))
         self.lbl_volume.configure(text=self.app.i18n.t("label_volume", "🔊 Volume :"))
         self.btn_close_all.configure(text=self.app.i18n.t("btn_close_team", "Fermer Team"))
+        self.btn_copy_invite.configure(text=self.app.i18n.t("btn_copy_invite", "📋 Copier /invite"))
         self.btn_reset.configure(text=self.app.i18n.t("btn_reset_settings", "Reset Settings"))
         self.lbl_accounts.configure(text=self.app.i18n.t("label_active_accounts", "Comptes actifs"))
         self.btn_refresh.configure(text=self.app.i18n.t("btn_refresh", "Rafraîchir"))
@@ -369,6 +374,16 @@ class OrganizerGUI:
         time.sleep(0.5)
         self.original_app_refresh()
         self.show_temporary_message(self.app.i18n.t("msg_team_closed", "💥 La team a été fermée !"), "#e74c3c")
+
+    def copy_invite_command(self):
+        command = self.app.logic.get_invite_command()
+        if not command:
+            self.show_temporary_message(self.app.i18n.t("msg_invite_empty", "⚠️ Aucun personnage à inviter !"), "#e67e22")
+            return
+        self.root.clipboard_clear()
+        self.root.clipboard_append(command)
+        self.root.update()
+        self.show_temporary_message(self.app.i18n.t("msg_invite_copied", "📋 Commande /invite copiée !"), "#27ae60")
 
     def toggle_tooltips_setting(self):
         self.app.config.data["show_tooltips"] = self.var_tooltips.get()

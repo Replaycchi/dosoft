@@ -138,6 +138,12 @@ class DofusLogic:
         self.config.data["accounts_state"][name] = is_active
         self.config.save()
 
+    def get_invite_command(self):
+        # Pages de connexion et chef exclus : on ne peut pas s'inviter soi-même
+        leader_name = self.config.data.get("leader_name", "")
+        names = [acc['name'] for acc in self.get_cycle_list() if not acc.get('is_menu') and acc['name'] != leader_name]
+        return "; ".join(f"/invite {n}" for n in names)
+
     def change_team(self, name, new_team):
         for acc in self.all_accounts:
             if acc['name'] == name: acc['team'] = new_team
