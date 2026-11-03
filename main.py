@@ -440,8 +440,10 @@ class OrganizerApp:
         self.logic.focus_window(cycle_list[self.current_idx]['hwnd'])
 
     def quit_app(self):
-        my_pid = os.getpid()
-        os.system(f"taskkill /F /PID {my_pid} /T")
+        # Sortie directe : taskkill gelait l'interface environ 5 s avant de fermer
+        try: self.tray_icon.visible = False # Évite une icône fantôme près de l'horloge
+        except Exception: pass
+        os._exit(0)
 
     def start_notification_listener(self):
         if not WINSDK_AVAILABLE:
