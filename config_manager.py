@@ -1,9 +1,24 @@
 import json
 import os
+import shutil
+import sys
+
+def default_settings_path():
+    """ Dans AppData : sans droits admin, DOSOFT ne peut pas écrire dans Program Files """
+    folder = os.path.join(os.environ.get("APPDATA", "."), "Dosoft")
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, "settings.json")
+    if not os.path.exists(path):
+        # Reprend les réglages des versions qui les gardaient à côté de l'exe
+        old_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.getcwd()
+        old_path = os.path.join(old_dir, "settings.json")
+        if os.path.exists(old_path):
+            shutil.copyfile(old_path, path)
+    return path
 
 class Config:
-    def __init__(self, filename="settings.json"):
-        self.filename = filename
+    def __init__(self, filename=None):
+        self.filename = filename or default_settings_path()
         self.data = {
             "prev_key": "tab",
             "next_key": "²",
@@ -60,3 +75,4 @@ class Config:
         if os.path.exists(self.filename):
             os.remove(self.filename)
         self.__init__(self.filename)
+        self.save()  # Sinon les anciens réglages seraient repris au prochain lancement

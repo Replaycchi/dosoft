@@ -32,7 +32,6 @@ echo [*] Lancement de PyInstaller...
 python -m PyInstaller ^
     --onedir ^
     --noconsole ^
-    --uac-admin ^
     --icon="%ICON_FILE%" ^
     --name="%APP_NAME%" ^
     --distpath="%OUT_DIR%" ^

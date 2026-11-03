@@ -1,5 +1,10 @@
 import os
 import sys
+
+# Exe sans console : stdout/stderr valent None et le moindre avertissement d'une bibliothèque planterait
+if sys.stdout is None: sys.stdout = open(os.devnull, "w")
+if sys.stderr is None: sys.stderr = open(os.devnull, "w")
+
 import ctypes
 import threading
 import keyboard
@@ -686,18 +691,6 @@ def check_version(i18n=None):
         )
         
 
-def is_admin():
-    try: return ctypes.windll.shell32.IsUserAnAdmin()
-    except: return False
-
-def run_as_admin():
-    if getattr(sys, 'frozen', False):
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv[1:]), None, 1)
-    else:
-        script = os.path.abspath(sys.argv[0])
-        params = ' '.join([f'"{arg}"' for arg in sys.argv[1:]])
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script}" {params}', None, 1)
-
 def handle_multiple_instances():
     i18n = I18nManager(Config().data.get("language", "fr"))
     mutex_name = "DOSOFT_SINGLE_INSTANCE_MUTEX"
@@ -725,10 +718,7 @@ def handle_multiple_instances():
     return mutex
 
 def start_application():
-    if not is_admin():
-        run_as_admin()
-        sys.exit() 
-    cfg = Config()       
+    cfg = Config()
     _app_mutex = handle_multiple_instances()
     # En arrière-plan : un réseau lent ne doit pas retarder l'ouverture
     threading.Thread(target=check_version, args=(I18nManager(cfg.data.get("language", "fr")),), daemon=True).start()
