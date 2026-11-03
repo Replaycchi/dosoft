@@ -6,6 +6,7 @@ import threading
 import time
 import win32api
 import win32con
+import win32gui
 import os
 import webbrowser
 from PIL import Image, ImageTk
@@ -67,6 +68,16 @@ class SettingsWindow(ctk.CTkToplevel):
         self.sw_close_quits.pack(pady=10, padx=10, anchor="w")
         self.parent.bind_i18n_tooltip(self.sw_close_quits, "tooltip_close_quits", "Désactivé : ✖ cache DOSOFT près de l'horloge, ➖ réduit dans la barre des tâches")
 
+        self.lbl_settings_hotkeys = ctk.CTkLabel(self.scroll_container, text=self.app.i18n.t("settings_hotkeys", "Raccourcis"), font=title_font)
+        self.lbl_settings_hotkeys.pack(pady=(20, 5))
+        frame_hotkeys = ctk.CTkFrame(self.scroll_container)
+        frame_hotkeys.pack(fill="x", padx=10, pady=5)
+
+        self.var_only_in_game = ctk.BooleanVar(value=self.app.config.data.get("hotkeys_only_in_game", True))
+        self.sw_only_in_game = ctk.CTkSwitch(frame_hotkeys, text=self.app.i18n.t("settings_hotkeys_only_game", "Actifs uniquement dans Dofus et DOSOFT"), variable=self.var_only_in_game, command=self.save_settings)
+        self.sw_only_in_game.pack(pady=10, padx=10, anchor="w")
+        self.parent.bind_i18n_tooltip(self.sw_only_in_game, "tooltip_hotkeys_only_game", "Raccourcis ignorés dans les autres logiciels (Discord, navigateur…).\nAfficher UI et Pause restent actifs partout.")
+
         frame_language = ctk.CTkFrame(self.scroll_container)
         frame_language.pack(fill="x", padx=10, pady=5)
         self.lbl_language = ctk.CTkLabel(frame_language, text=self.app.i18n.t("settings_language", "Langue"))
@@ -108,6 +119,7 @@ class SettingsWindow(ctk.CTkToplevel):
         previous_language = self.app.config.data.get("language", "fr")
         self.app.config.data["radial_menu_active"] = self.var_radial.get()
         self.app.config.data["close_quits_app"] = self.var_close_quits.get()
+        self.app.config.data["hotkeys_only_in_game"] = self.var_only_in_game.get()
         self.app.config.data["language"] = self.var_language.get()
         self.app.config.data["keyboard_layout"] = self.var_keyboard_layout.get()
         self.app.i18n.set_locale(self.var_language.get())
@@ -141,6 +153,8 @@ class SettingsWindow(ctk.CTkToplevel):
         self.lbl_settings_radial.configure(text=self.app.i18n.t("settings_radial", "Roue de Focus (Radiale)"))
         self.sw_radial.configure(text=self.app.i18n.t("settings_radial_enable", "Activer la roue"))
         self.lbl_hk.configure(text=self.app.i18n.t("settings_hotkey", "Raccourci :"))
+        self.lbl_settings_hotkeys.configure(text=self.app.i18n.t("settings_hotkeys", "Raccourcis"))
+        self.sw_only_in_game.configure(text=self.app.i18n.t("settings_hotkeys_only_game", "Actifs uniquement dans Dofus et DOSOFT"))
         self.lbl_settings_window.configure(text=self.app.i18n.t("settings_window", "Fenêtre"))
         self.sw_close_quits.configure(text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit près de l'horloge"))
         self.lbl_language.configure(text=self.app.i18n.t("settings_language", "Langue"))
@@ -175,8 +189,9 @@ class OrganizerGUI:
             except: pass
                 
         self.is_listening = False
-        self.is_visible = True 
-        cfg = self.app.config.data 
+        self.is_visible = True
+        self.compact_window = None
+        cfg = self.app.config.data
         
         self.var_tooltips = ctk.BooleanVar(value=cfg.get("show_tooltips", True))
         self.tooltip = tk.Toplevel(self.root)
@@ -209,6 +224,11 @@ class OrganizerGUI:
         self.btn_off.pack(side="right", padx=(0, 10))
         self.bind_i18n_tooltip(self.btn_off, "tooltip_off", "Fermer complètement DOSOFT")
         # --------------------------
+
+        self.btn_pause = ctk.CTkButton(self.header_f, text="", width=110, command=self.app.toggle_hotkeys_pause)
+        self.btn_pause.pack(side="right", padx=(0, 10))
+        self.bind_i18n_tooltip(self.btn_pause, "tooltip_pause", "Mettre en pause ou réactiver tous les raccourcis")
+        self.update_pause_indicator()
 
         self.frame_mode = ctk.CTkFrame(self.root)
         self.frame_mode.pack(fill="x", padx=15, pady=5)
@@ -246,6 +266,7 @@ class OrganizerGUI:
         self.create_hotkey_row(self.frame_keys, "hotkey_toggle_ui", "toggle_app_key", 2, 3, "tooltip_toggle_ui")
         self.create_hotkey_row(self.frame_keys, "hotkey_refresh", "refresh_key", 1, 6, "tooltip_refresh")
         self.create_hotkey_row(self.frame_keys, "hotkey_quit", "quit_key", 2, 6, "tooltip_quit")
+        self.create_hotkey_row(self.frame_keys, "hotkey_pause", "pause_key", 3, 0, "tooltip_pause_key")
 
         self.frame_actions = ctk.CTkFrame(self.root)
         self.frame_actions.pack(fill="x", padx=15, pady=5)
@@ -291,7 +312,11 @@ class OrganizerGUI:
 
         self.btn_sort_win = ctk.CTkButton(self.frame_footer, text=self.app.i18n.t("btn_sort_taskbar", "Trier Barre Windows"), fg_color="#8e44ad", hover_color="#9b59b6", command=self.trigger_sort_taskbar, width=120)
         self.btn_sort_win.pack(side="left", padx=5)
-        
+
+        self.btn_compact = ctk.CTkButton(self.frame_footer, text=self.app.i18n.t("btn_compact", "🗗 Mode compact"), fg_color="#34495e", hover_color="#2c3e50", command=self.enter_compact_mode, width=100)
+        self.btn_compact.pack(side="left", padx=5)
+        self.bind_i18n_tooltip(self.btn_compact, "tooltip_compact", "Petite barre toujours visible avec les têtes des persos")
+
         self.chk_tooltips = ctk.CTkCheckBox(self.frame_footer, text=self.app.i18n.t("label_tooltips", "Bulles"), variable=self.var_tooltips, command=self.toggle_tooltips_setting, width=60)
         self.chk_tooltips.pack(side="left", padx=15)
         
@@ -303,7 +328,10 @@ class OrganizerGUI:
         self.lbl_feedback = ctk.CTkLabel(frame_msg, text="", font=ctk.CTkFont(size=13, weight="bold"))
         self.lbl_feedback.pack(expand=True)
         
-        self.skin_cache = {} 
+        self.skin_cache = {}
+
+        if cfg.get("compact_mode", False):
+            self.root.after(500, self.enter_compact_mode)
 
     def apply_translations(self):
         none_label = self.app.i18n.t("none", "Aucun")
@@ -324,6 +352,8 @@ class OrganizerGUI:
         self.lbl_accounts.configure(text=self.app.i18n.t("label_active_accounts", "Comptes actifs"))
         self.btn_refresh.configure(text=self.app.i18n.t("btn_refresh", "Rafraîchir"))
         self.btn_sort_win.configure(text=self.app.i18n.t("btn_sort_taskbar", "Trier Barre Windows"))
+        self.btn_compact.configure(text=self.app.i18n.t("btn_compact", "🗗 Mode compact"))
+        self.update_pause_indicator()
         self.chk_tooltips.configure(text=self.app.i18n.t("label_tooltips", "Bulles"))
         self.btn_hide.configure(text=self.app.i18n.t("btn_hide_ui", "Cacher l'UI"))
         self.chk_autofocus.configure(text=self.app.i18n.t("label_auto_focus", "Auto-Focus 🔔"))
@@ -331,6 +361,8 @@ class OrganizerGUI:
             self.settings_window.apply_translations()
         for config_key, (label_widget, label_key) in self.hotkey_labels.items():
             label_widget.configure(text=f"{self.app.i18n.t(label_key, label_key)}:")
+        # Les widgets détruits (lignes de la liste, barre compacte) restent dans la map : on les retire
+        self.tooltip_i18n_map = {w: v for w, v in self.tooltip_i18n_map.items() if w.winfo_exists()}
         for widget, (tooltip_key, default_text) in self.tooltip_i18n_map.items():
             self.bind_tooltip(widget, self.app.i18n.t(tooltip_key, default_text))
         for button in self.hotkey_btns.values():
@@ -507,6 +539,8 @@ class OrganizerGUI:
             combo_pos.pack(side="right", padx=(2, 5))
             self.bind_i18n_tooltip(combo_pos, "tooltip_exact_position", "Choisir la position exacte")
 
+        if self.compact_window: self.compact_window.rebuild()
+
     def toggle_autofocus(self):
         self.app.config.data["auto_focus_retro"] = self.var_autofocus.get()
         self.app.config.save()
@@ -663,14 +697,16 @@ class OrganizerGUI:
     def on_mode_change(self, choice):
         self.app.logic.set_mode(choice)
         self.app.current_idx = 0
+        if self.compact_window: self.compact_window.rebuild()
 
-    def get_class_image(self, class_name, is_retro=False):
+    def get_class_image(self, class_name, is_retro=False, size=24):
         filename = f"{class_name}_retro" if is_retro and class_name != "Inconnu" else class_name
-        if filename in self.skin_cache: return self.skin_cache[filename]
+        cache_key = (filename, size)
+        if cache_key in self.skin_cache: return self.skin_cache[cache_key]
         path = f"skin/{filename}.png"
         if not os.path.exists(path): return None
-        img = ctk.CTkImage(light_image=Image.open(path), dark_image=Image.open(path), size=(24, 24))
-        self.skin_cache[filename] = img
+        img = ctk.CTkImage(light_image=Image.open(path), dark_image=Image.open(path), size=(size, size))
+        self.skin_cache[cache_key] = img
         return img
 
     def change_retro_class(self, name, new_class):
@@ -706,8 +742,36 @@ class OrganizerGUI:
             return
         self.root.after(0, lambda: self.root.state() == "iconic" and self.hide_to_tray())
 
+    def update_pause_indicator(self):
+        if self.app.hotkeys_paused:
+            self.btn_pause.configure(text=self.app.i18n.t("btn_hotkeys_paused", "⏸ Raccourcis en pause"), fg_color="#c0392b", hover_color="#e74c3c")
+        else:
+            self.btn_pause.configure(text=self.app.i18n.t("btn_hotkeys_active", "⌨️ Raccourcis actifs"), fg_color="#27ae60", hover_color="#2ecc71")
+        if self.compact_window: self.compact_window.update_pause_indicator()
+
+    def enter_compact_mode(self):
+        if self.compact_window: return
+        self.compact_window = CompactWindow(self)
+        self.root.withdraw()
+        self.app.config.data["compact_mode"] = True
+        self.app.config.save()
+
+    def exit_compact_mode(self):
+        if self.compact_window:
+            self.compact_window.destroy()
+            self.compact_window = None
+        self.app.config.data["compact_mode"] = False
+        self.app.config.save()
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+        self.is_visible = True
+
     def toggle_visibility(self):
         """ Alterne entre l'affichage et la mise en veille dans la barre des tâches """
+        if self.compact_window:
+            self.exit_compact_mode()
+            return
         # On se base sur l'état réel : la fenêtre peut être réaffichée depuis l'icône de l'horloge ou réduite
         if self.root.state() not in ("withdrawn", "iconic"):
             self.hide_to_tray()
@@ -721,6 +785,87 @@ class OrganizerGUI:
 
     def open_bind_manager(self):
         CharManagerWindow(self)
+
+
+class CompactWindow(ctk.CTkToplevel):
+    """ Barre toujours visible : une tête cliquable par personnage de la team contrôlée """
+    BG_COLOR = "#2b2b2b"
+
+    def __init__(self, parent_gui):
+        super().__init__(parent_gui.root)
+        self.parent = parent_gui
+        self.app = parent_gui.app
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
+        self.configure(fg_color=self.BG_COLOR)
+        self.head_buttons = {}
+        self.focused_hwnd = None
+        self.drag_offset = (0, 0)
+
+        self.handle = ctk.CTkLabel(self, text="⠿", width=18, font=ctk.CTkFont(size=18))
+        self.handle.pack(side="left", padx=(6, 2))
+        self.handle.bind("<ButtonPress-1>", self.start_drag)
+        self.handle.bind("<B1-Motion>", self.on_drag)
+        self.handle.bind("<ButtonRelease-1>", self.save_position)
+        self.parent.bind_i18n_tooltip(self.handle, "tooltip_compact_move", "Glisser pour déplacer la barre")
+
+        self.heads_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.heads_frame.pack(side="left", padx=2, pady=4)
+
+        self.btn_expand = ctk.CTkButton(self, text="⤢", width=28, height=28, fg_color="#34495e", hover_color="#2c3e50", command=self.parent.exit_compact_mode)
+        self.btn_expand.pack(side="left", padx=(2, 6))
+        self.parent.bind_i18n_tooltip(self.btn_expand, "tooltip_compact_exit", "Revenir à la fenêtre complète")
+
+        self.rebuild()
+        self.update_pause_indicator()
+        root = self.parent.root
+        self.geometry(self.app.config.data.get("compact_pos", "") or f"+{root.winfo_x()}+{root.winfo_y()}")
+        self.highlight_focused()
+
+    def rebuild(self):
+        for widget in self.heads_frame.winfo_children(): widget.destroy()
+        self.head_buttons = {}
+        self.focused_hwnd = None
+        is_retro = self.app.config.data.get("game_version", "Unity") == "Rétro"
+        accounts = [acc for acc in self.app.logic.get_cycle_list() if not acc.get('is_menu')]
+
+        if not accounts:
+            ctk.CTkLabel(self.heads_frame, text=self.app.i18n.t("compact_no_character", "Aucun perso")).pack(side="left", padx=6)
+
+        for acc in accounts:
+            img = self.parent.get_class_image(acc.get('classe', 'Inconnu'), is_retro, size=32)
+            btn = ctk.CTkButton(self.heads_frame, image=img, text="" if img else acc['name'][:2], width=42, height=42, fg_color="transparent", hover_color="#3b4252", border_width=2, border_color=self.BG_COLOR, command=lambda n=acc['name']: self.app.on_radial_focus_select(n))
+            btn.pack(side="left", padx=2)
+            self.parent.bind_tooltip(btn, acc['name'])
+            self.head_buttons[acc['hwnd']] = btn
+
+    def highlight_focused(self):
+        """ Entoure en vert le personnage dont la page est au premier plan """
+        fg_hwnd = win32gui.GetForegroundWindow()
+        if fg_hwnd != self.focused_hwnd:
+            if self.focused_hwnd in self.head_buttons:
+                self.head_buttons[self.focused_hwnd].configure(border_color=self.BG_COLOR)
+            if fg_hwnd in self.head_buttons:
+                self.head_buttons[fg_hwnd].configure(border_color="#2ecc71")
+            self.focused_hwnd = fg_hwnd
+        self.highlight_job = self.after(300, self.highlight_focused)
+
+    def destroy(self):
+        self.after_cancel(self.highlight_job)
+        super().destroy()
+
+    def update_pause_indicator(self):
+        self.handle.configure(text_color="#e74c3c" if self.app.hotkeys_paused else "#ecf0f1")
+
+    def start_drag(self, event):
+        self.drag_offset = (event.x_root - self.winfo_x(), event.y_root - self.winfo_y())
+
+    def on_drag(self, event):
+        self.geometry(f"+{event.x_root - self.drag_offset[0]}+{event.y_root - self.drag_offset[1]}")
+
+    def save_position(self, event):
+        self.app.config.data["compact_pos"] = f"+{self.winfo_x()}+{self.winfo_y()}"
+        self.app.config.save()
 
 
 class CharManagerWindow(ctk.CTkToplevel):

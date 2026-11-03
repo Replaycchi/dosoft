@@ -26,6 +26,10 @@ class Config:
             "ignore_organizer_warning": False,
             "auto_focus_retro": False,
             "close_quits_app": False,
+            "pause_key": "",
+            "hotkeys_only_in_game": True,
+            "compact_mode": False,
+            "compact_pos": "",
             # --- NOUVEAU : Gestionnaire de Binds Avancé DOSOFT ---
             "advanced_bind_mode": "cycle", 
             "advanced_bind_modifier": "ctrl",

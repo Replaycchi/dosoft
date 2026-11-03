@@ -84,6 +84,18 @@
   "header_instace_off": "Instância detectada",
   "button_yes": "Sim",
   "button_no": "Não",
-  "popup_conflict_instance_text": "Uma instância de DOSOFT já está em execução!\n\nVocê deseja fechar a instância antiga para abrir esta?"
-
+  "popup_conflict_instance_text": "Uma instância de DOSOFT já está em execução!\n\nVocê deseja fechar a instância antiga para abrir esta?",
+  "settings_hotkeys": "Atalhos",
+  "settings_hotkeys_only_game": "Ativos apenas no Dofus e no DOSOFT",
+  "tooltip_hotkeys_only_game": "Atalhos ignorados em outros programas (Discord, navegador…).\nMostrar UI e Pausa continuam ativos em todo lugar.",
+  "hotkey_pause": "Pausa",
+  "tooltip_pause_key": "Pausa ou reativa todos os atalhos (prático para escrever no chat)",
+  "tooltip_pause": "Pausar ou reativar todos os atalhos",
+  "btn_hotkeys_active": "⌨️ Atalhos ativos",
+  "btn_hotkeys_paused": "⏸ Atalhos em pausa",
+  "btn_compact": "🗗 Modo compacto",
+  "tooltip_compact": "Pequena barra sempre visível com as cabeças dos personagens",
+  "tooltip_compact_move": "Arraste para mover a barra",
+  "tooltip_compact_exit": "Voltar à janela completa",
+  "compact_no_character": "Nenhum personagem"
 }

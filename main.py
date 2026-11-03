@@ -60,6 +60,8 @@ class OrganizerApp:
         self.keymaps = KeyboardLayoutManager(self.config.data.get("keyboard_layout", "azerty_fr"))
         try_load_windows_layout(self.config.data.get("keyboard_layout", "azerty_fr"))
         self.logic = DofusLogic(self.config)
+        self.hotkeys_paused = False
+        self.always_active_hotkeys = set()
         self.gui = OrganizerGUI(self)
         self.current_idx = 0
         self.hotkey_actions = {} 
@@ -98,14 +100,7 @@ class OrganizerApp:
         self.tray_icon.run_detached()
 
     def toggle_from_tray(self, icon, item):
-        def safe_toggle():
-            if self.gui.root.state() in ('withdrawn', 'iconic'):
-                self.gui.root.deiconify()
-                self.gui.root.lift()
-                self.gui.root.focus_force()
-            else:
-                self.gui.root.withdraw()
-        self.gui.root.after(0, safe_toggle)
+        self.gui.root.after(0, self.gui.toggle_visibility)
 
     def refresh_from_tray(self, icon, item):
         self.gui.root.after(0, self.refresh)
@@ -238,7 +233,7 @@ class OrganizerApp:
             # Gestion des macros de souris (MB4, MB5, Clics)
             if hasattr(self, 'mouse_hotkeys'):
                 for hk_str, func in self.mouse_hotkeys.items():
-                    is_pressed = self.is_hotkey_pressed(hk_str)
+                    is_pressed = self.is_hotkey_pressed(hk_str) and (hk_str in self.always_active_hotkeys or self.hotkeys_enabled_here())
                     was_pressed = self.mouse_states.get(hk_str, False)
                     
                     if is_pressed and not was_pressed:
@@ -255,8 +250,8 @@ class OrganizerApp:
             radial_active = self.config.data.get("radial_menu_active", True)
             
             if radial_active and radial_hk:
-                is_pressed = self.is_hotkey_pressed(radial_hk)
-                
+                is_pressed = self.is_hotkey_pressed(radial_hk) and (radial_was_open or self.hotkeys_enabled_here())
+
                 if is_pressed and not radial_was_open:
                     radial_was_open = True
                     is_retro = self.config.data.get("game_version", "Unity") == "Rétro"
@@ -307,12 +302,27 @@ class OrganizerApp:
                 self.current_idx = index
                 break
 
-    def register_action(self, hk_str, func):
+    def hotkeys_enabled_here(self):
+        """ Raccourcis ignorés en pause, ou hors de Dofus/DOSOFT si l'option est active """
+        if self.hotkeys_paused: return False
+        if not self.config.data.get("hotkeys_only_in_game", True): return True
+        try:
+            fg_hwnd = win32gui.GetForegroundWindow()
+            _, pid = win32process.GetWindowThreadProcessId(fg_hwnd)
+            return pid == os.getpid() or self.logic.is_game_window(fg_hwnd)
+        except Exception: return True
+
+    def toggle_hotkeys_pause(self):
+        self.hotkeys_paused = not self.hotkeys_paused
+        self.gui.root.after(0, self.gui.update_pause_indicator)
+
+    def register_action(self, hk_str, func, always_active=False):
         if not hk_str: return
         hk_str = hk_str.lower().strip()
-        
+
         if 'click' in hk_str or 'mouse' in hk_str:
             self.mouse_hotkeys[hk_str] = func
+            if always_active: self.always_active_hotkeys.add(hk_str)
             return
             
         parts = hk_str.split('+')
@@ -325,6 +335,7 @@ class OrganizerApp:
             main_scan = self.keymaps.resolve_scan_code(p)
         if main_scan is not None:
             self.hotkey_actions[(frozenset(mods), main_scan)] = func
+            if always_active: self.always_active_hotkeys.add((frozenset(mods), main_scan))
 
     def _execute_advanced_and_update(self, mode, identifier):
         new_idx = self.logic.execute_advanced_bind(mode, identifier)
@@ -356,6 +367,7 @@ class OrganizerApp:
         
         key = (frozenset(current_mods), event.scan_code)
         if key in self.hotkey_actions:
+            if key not in self.always_active_hotkeys and not self.hotkeys_enabled_here(): return
             def safe_execute(mods=current_mods):
                 self.release_modifiers()
                 self.hotkey_actions[key]()
@@ -367,8 +379,9 @@ class OrganizerApp:
         keyboard.unhook_all()
         self.hotkey_actions = {} 
         self.mouse_hotkeys = {} 
-        self.mouse_states = {}  
-        
+        self.mouse_states = {}
+        self.always_active_hotkeys = set()
+
         cfg = self.config.data
         
         # Binds avancés dynamiques
@@ -388,7 +401,9 @@ class OrganizerApp:
             if cfg.get("prev_key"): self.register_action(cfg["prev_key"], self.prev_char)
             if cfg.get("next_key"): self.register_action(cfg["next_key"], self.next_char)
             if cfg.get("leader_key"): self.register_action(cfg["leader_key"], self.focus_leader)
-            if cfg.get("toggle_app_key"): self.register_action(cfg["toggle_app_key"], lambda: self.gui.root.after(0, self.gui.toggle_visibility))
+            # Afficher UI et Pause restent actifs partout, même en pause
+            if cfg.get("toggle_app_key"): self.register_action(cfg["toggle_app_key"], lambda: self.gui.root.after(0, self.gui.toggle_visibility), always_active=True)
+            if cfg.get("pause_key"): self.register_action(cfg["pause_key"], self.toggle_hotkeys_pause, always_active=True)
             if cfg.get('refresh_key'): self.register_action(cfg['refresh_key'], self.refresh)
             if cfg.get('quit_key'):    self.register_action(cfg['quit_key'],   self.quit_app) 
             keyboard.hook(self.global_hook_listener)

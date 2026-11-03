@@ -92,6 +92,15 @@ class DofusLogic:
                 
         return self.all_accounts
 
+    def is_game_window(self, hwnd):
+        """ Vrai si la fenêtre est une page Dofus (connue ou détectée comme dans scan_slots) """
+        if any(acc['hwnd'] == hwnd for acc in self.all_accounts): return True
+        try:
+            if self.config.data.get("game_version", "Unity") == "Rétro":
+                return "Dofus Retro" in win32gui.GetWindowText(hwnd)
+            return win32gui.GetClassName(hwnd) == "UnityWndClass"
+        except Exception: return False
+
     def get_cycle_list(self):
         mode = self.config.data.get("current_mode", "ALL")
         return [acc for acc in self.all_accounts if acc['active'] and (mode == "ALL" or acc['team'] == mode)]

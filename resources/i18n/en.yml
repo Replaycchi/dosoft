@@ -84,5 +84,18 @@
   "header_instance_off": "Instance detected",
   "button_yes": "Yes",
   "button_no": "No",
-  "popup_conflict_instance_text": "An instance of DOSOFT is already running!\n\nDo you want to close the old instance to open this one?"
+  "popup_conflict_instance_text": "An instance of DOSOFT is already running!\n\nDo you want to close the old instance to open this one?",
+  "settings_hotkeys": "Shortcuts",
+  "settings_hotkeys_only_game": "Active only in Dofus and DOSOFT",
+  "tooltip_hotkeys_only_game": "Shortcuts are ignored in other software (Discord, browser…).\nShow UI and Pause stay active everywhere.",
+  "hotkey_pause": "Pause",
+  "tooltip_pause_key": "Pauses or resumes all shortcuts (handy for typing in chat)",
+  "tooltip_pause": "Pause or resume all shortcuts",
+  "btn_hotkeys_active": "⌨️ Shortcuts active",
+  "btn_hotkeys_paused": "⏸ Shortcuts paused",
+  "btn_compact": "🗗 Compact mode",
+  "tooltip_compact": "Small always-visible bar with your characters' heads",
+  "tooltip_compact_move": "Drag to move the bar",
+  "tooltip_compact_exit": "Back to the full window",
+  "compact_no_character": "No character"
 }
