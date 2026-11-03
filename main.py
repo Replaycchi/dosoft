@@ -14,8 +14,7 @@ import customtkinter as ctk
 import pystray
 from pystray import MenuItem as item
 import asyncio
-import requests
-from tkinter import messagebox 
+from tkinter import messagebox
 from app_version import CURRENT_VERSION, APP_TITLE
 
 # --- FORCAGE DU DPI AWARENESS (Règle les soucis 4K / Zoom Windows) ---
@@ -659,6 +658,7 @@ def is_newer_version(candidate, current):
 
 
 def check_version(i18n=None):
+    import requests  # importé ici : long à charger, inutile pour afficher la fenêtre
     i18n = i18n or I18nManager("fr")
     try:
         response = requests.get(VERSION_URL, timeout=5)
@@ -730,7 +730,8 @@ def start_application():
         sys.exit() 
     cfg = Config()       
     _app_mutex = handle_multiple_instances()
-    check_version(I18nManager(cfg.data.get("language", "fr")))
+    # En arrière-plan : un réseau lent ne doit pas retarder l'ouverture
+    threading.Thread(target=check_version, args=(I18nManager(cfg.data.get("language", "fr")),), daemon=True).start()
 
     app = OrganizerApp()
     app.gui.run()

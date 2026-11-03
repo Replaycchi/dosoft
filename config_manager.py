@@ -30,6 +30,7 @@ class Config:
             "hotkeys_only_in_game": True,
             "compact_mode": False,
             "compact_pos": "",
+            "window_geometry": "",
             # --- NOUVEAU : Gestionnaire de Binds Avancé DOSOFT ---
             "advanced_bind_mode": "cycle", 
             "advanced_bind_modifier": "ctrl",

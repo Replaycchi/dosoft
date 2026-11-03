@@ -73,7 +73,7 @@ Name: "startmenuicon"; Description: "Créer un raccourci dans le Menu Démarrer"
 
 [Files]
 ; --- Executable principal ---
-Source: "{#SourceDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\{#AppName}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; --- Ressources ---
 Source: "logo.ico"; DestDir: "{app}"; Flags: ignoreversion

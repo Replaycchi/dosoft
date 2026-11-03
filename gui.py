@@ -8,6 +8,7 @@ import win32api
 import win32con
 import win32gui
 import os
+import re
 import webbrowser
 from PIL import Image, ImageTk
 from i18n_manager import I18nManager
@@ -175,8 +176,10 @@ class OrganizerGUI:
         win_h = min(screen_h - 80, 850) 
         x_pos = int((screen_w / 2) - (win_w / 2))
         y_pos = int((screen_h / 2) - (win_h / 2))
-        self.root.geometry(f"{win_w}x{win_h}+{x_pos}+{y_pos}") 
-        
+        self.root.geometry(f"{win_w}x{win_h}+{x_pos}+{y_pos}")
+        self.restore_window_geometry()
+        self.root.bind("<Configure>", self.on_window_configure)
+
         self.root.attributes("-topmost", True)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close_window)
         self.root.bind("<Unmap>", self.on_minimize_window)
@@ -741,6 +744,30 @@ class OrganizerGUI:
         if event.widget is not self.root or not self.app.config.data.get("close_quits_app", False):
             return
         self.root.after(0, lambda: self.root.state() == "iconic" and self.hide_to_tray())
+
+    def restore_window_geometry(self):
+        """ Reprend la position et la taille enregistrées, sauf si l'écran concerné n'existe plus """
+        saved = self.app.config.data.get("window_geometry", "")
+        match = re.fullmatch(r"\d+x\d+\+(-?\d+)\+(-?\d+)", saved)
+        if not match: return
+        x, y = int(match.group(1)), int(match.group(2))
+        # Le haut de la fenêtre doit rester attrapable à la souris
+        if win32api.MonitorFromPoint((x + 50, y + 10), win32con.MONITOR_DEFAULTTONULL):
+            self.root.geometry(saved)
+
+    def on_window_configure(self, event):
+        # DOSOFT est tué à la fermeture : on enregistre juste après chaque déplacement
+        if event.widget is not self.root: return
+        if hasattr(self, "geometry_timer"):
+            self.root.after_cancel(self.geometry_timer)
+        self.geometry_timer = self.root.after(500, self.save_window_geometry)
+
+    def save_window_geometry(self):
+        if self.root.state() != "normal": return
+        geometry = self.root.geometry()
+        if geometry != self.app.config.data.get("window_geometry", ""):
+            self.app.config.data["window_geometry"] = geometry
+            self.app.config.save()
 
     def update_pause_indicator(self):
         if self.app.hotkeys_paused:

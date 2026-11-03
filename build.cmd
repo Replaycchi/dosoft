@@ -30,7 +30,7 @@ if exist "%APP_NAME%.spec" (
 :: --- Compilation PyInstaller ---
 echo [*] Lancement de PyInstaller...
 python -m PyInstaller ^
-    --onefile ^
+    --onedir ^
     --noconsole ^
     --uac-admin ^
     --icon="%ICON_FILE%" ^
@@ -62,6 +62,6 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo [OK] Compilation reussie !
-echo [OK] Executable : %OUT_DIR%\%APP_NAME%.exe
+echo [OK] Executable : %OUT_DIR%\%APP_NAME%\%APP_NAME%.exe
 echo.
 pause
