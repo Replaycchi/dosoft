@@ -97,5 +97,7 @@
   "tooltip_compact": "Pequena barra sempre visível com as cabeças dos personagens",
   "tooltip_compact_move": "Arraste para mover a barra",
   "tooltip_compact_exit": "Voltar à janela completa",
+  "tooltip_compact_refresh": "Atualizar a lista de personagens",
+  "tooltip_compact_sort": "Ordenar as janelas na barra do Windows",
   "compact_no_character": "Nenhum personagem"
 }

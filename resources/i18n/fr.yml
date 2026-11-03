@@ -97,5 +97,7 @@
   "tooltip_compact": "Petite barre toujours visible avec les têtes des persos",
   "tooltip_compact_move": "Glisser pour déplacer la barre",
   "tooltip_compact_exit": "Revenir à la fenêtre complète",
+  "tooltip_compact_refresh": "Rafraîchir la liste des persos",
+  "tooltip_compact_sort": "Trier les fenêtres dans la barre Windows",
   "compact_no_character": "Aucun perso"
 }

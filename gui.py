@@ -839,9 +839,26 @@ class CompactWindow(ctk.CTkToplevel):
         self.heads_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.heads_frame.pack(side="left", padx=2, pady=4)
 
+        # Petits boutons discrets, empilés pour ne presque pas élargir la barre
+        tool_style = dict(width=20, height=20, corner_radius=4, fg_color="transparent", text_color="#95a5a6")
+        self.frame_tools = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_tools.pack(side="left", padx=(2, 4))
+
+        self.btn_refresh = ctk.CTkButton(self.frame_tools, text="⟳", hover_color="#3b4252", command=self.parent.original_app_refresh, **tool_style)
+        self.btn_refresh.pack(pady=(0, 2))
+        self.parent.bind_i18n_tooltip(self.btn_refresh, "tooltip_compact_refresh", "Rafraîchir la liste des persos")
+
+        self.btn_sort = ctk.CTkButton(self.frame_tools, text="⇅", hover_color="#3b4252", command=self.parent.trigger_sort_taskbar, **tool_style)
+        self.btn_sort.pack()
+        self.parent.bind_i18n_tooltip(self.btn_sort, "tooltip_compact_sort", "Trier les fenêtres dans la barre Windows")
+
         self.btn_expand = ctk.CTkButton(self, text="⤢", width=28, height=28, fg_color="#34495e", hover_color="#2c3e50", command=self.parent.exit_compact_mode)
         self.btn_expand.pack(side="left", padx=(2, 6))
         self.parent.bind_i18n_tooltip(self.btn_expand, "tooltip_compact_exit", "Revenir à la fenêtre complète")
+
+        self.btn_quit = ctk.CTkButton(self, text="✕", hover_color="#c0392b", command=self.app.quit_app, **tool_style)
+        self.btn_quit.pack(side="left", padx=(0, 6))
+        self.parent.bind_i18n_tooltip(self.btn_quit, "tooltip_off", "Fermer complètement DOSOFT")
 
         self.rebuild()
         self.update_pause_indicator()

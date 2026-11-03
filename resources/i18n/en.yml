@@ -97,5 +97,7 @@
   "tooltip_compact": "Small always-visible bar with your characters' heads",
   "tooltip_compact_move": "Drag to move the bar",
   "tooltip_compact_exit": "Back to the full window",
+  "tooltip_compact_refresh": "Refresh the character list",
+  "tooltip_compact_sort": "Sort the windows in the Windows taskbar",
   "compact_no_character": "No character"
 }
