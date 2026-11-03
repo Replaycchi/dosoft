@@ -63,9 +63,9 @@ class SettingsWindow(ctk.CTkToplevel):
         frame_window.pack(fill="x", padx=10, pady=5)
 
         self.var_close_quits = ctk.BooleanVar(value=self.app.config.data.get("close_quits_app", False))
-        self.sw_close_quits = ctk.CTkSwitch(frame_window, text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit dans la barre des tâches"), variable=self.var_close_quits, command=self.save_settings)
+        self.sw_close_quits = ctk.CTkSwitch(frame_window, text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit près de l'horloge"), variable=self.var_close_quits, command=self.save_settings)
         self.sw_close_quits.pack(pady=10, padx=10, anchor="w")
-        self.parent.bind_i18n_tooltip(self.sw_close_quits, "tooltip_close_quits", "Désactivé : la croix cache DOSOFT près de l'horloge (zone de notification)")
+        self.parent.bind_i18n_tooltip(self.sw_close_quits, "tooltip_close_quits", "Désactivé : ✖ cache DOSOFT près de l'horloge, ➖ réduit dans la barre des tâches")
 
         frame_language = ctk.CTkFrame(self.scroll_container)
         frame_language.pack(fill="x", padx=10, pady=5)
@@ -142,7 +142,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.sw_radial.configure(text=self.app.i18n.t("settings_radial_enable", "Activer la roue"))
         self.lbl_hk.configure(text=self.app.i18n.t("settings_hotkey", "Raccourci :"))
         self.lbl_settings_window.configure(text=self.app.i18n.t("settings_window", "Fenêtre"))
-        self.sw_close_quits.configure(text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit dans la barre des tâches"))
+        self.sw_close_quits.configure(text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit près de l'horloge"))
         self.lbl_language.configure(text=self.app.i18n.t("settings_language", "Langue"))
         self.lbl_keyboard.configure(text=self.app.i18n.t("settings_keyboard_layout", "Disposition clavier"))
         self.btn_close.configure(text=self.app.i18n.t("settings_close", "Fermer"))
@@ -165,6 +165,7 @@ class OrganizerGUI:
         
         self.root.attributes("-topmost", True)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close_window)
+        self.root.bind("<Unmap>", self.on_minimize_window)
         self.original_app_refresh = self.app.refresh
 
         
@@ -699,10 +700,16 @@ class OrganizerGUI:
         else:
             self.hide_to_tray()
 
+    def on_minimize_window(self, event):
+        """ Bouton réduire : cache DOSOFT près de l'horloge au lieu de la barre des tâches si l'option est active """
+        if event.widget is not self.root or not self.app.config.data.get("close_quits_app", False):
+            return
+        self.root.after(0, lambda: self.root.state() == "iconic" and self.hide_to_tray())
+
     def toggle_visibility(self):
         """ Alterne entre l'affichage et la mise en veille dans la barre des tâches """
-        # Une fenêtre réduite dans la barre des tâches doit être réaffichée, pas cachée
-        if self.is_visible and self.root.state() != "iconic":
+        # On se base sur l'état réel : la fenêtre peut être réaffichée depuis l'icône de l'horloge ou réduite
+        if self.root.state() not in ("withdrawn", "iconic"):
             self.hide_to_tray()
         else:
             self.root.deiconify()
