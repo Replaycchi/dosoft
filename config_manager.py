@@ -25,6 +25,7 @@ class Config:
             "game_version": "Unity",
             "ignore_organizer_warning": False,
             "auto_focus_retro": False,
+            "close_quits_app": False,
             # --- NOUVEAU : Gestionnaire de Binds Avancé DOSOFT ---
             "advanced_bind_mode": "cycle", 
             "advanced_bind_modifier": "ctrl",

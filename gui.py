@@ -57,6 +57,16 @@ class SettingsWindow(ctk.CTkToplevel):
         btn_x = ctk.CTkButton(frame_hk, text="✖", width=25, fg_color="#c0392b", hover_color="#e74c3c", command=lambda: self.parent.clear_key("radial_menu_hotkey", btn_hk))
         btn_x.pack(side="left", padx=5)
 
+        self.lbl_settings_window = ctk.CTkLabel(self.scroll_container, text=self.app.i18n.t("settings_window", "Fenêtre"), font=title_font)
+        self.lbl_settings_window.pack(pady=(20, 5))
+        frame_window = ctk.CTkFrame(self.scroll_container)
+        frame_window.pack(fill="x", padx=10, pady=5)
+
+        self.var_close_quits = ctk.BooleanVar(value=self.app.config.data.get("close_quits_app", False))
+        self.sw_close_quits = ctk.CTkSwitch(frame_window, text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit dans la barre des tâches"), variable=self.var_close_quits, command=self.save_settings)
+        self.sw_close_quits.pack(pady=10, padx=10, anchor="w")
+        self.parent.bind_i18n_tooltip(self.sw_close_quits, "tooltip_close_quits", "Désactivé : la croix cache DOSOFT près de l'horloge (zone de notification)")
+
         frame_language = ctk.CTkFrame(self.scroll_container)
         frame_language.pack(fill="x", padx=10, pady=5)
         self.lbl_language = ctk.CTkLabel(frame_language, text=self.app.i18n.t("settings_language", "Langue"))
@@ -97,6 +107,7 @@ class SettingsWindow(ctk.CTkToplevel):
     def save_settings(self):
         previous_language = self.app.config.data.get("language", "fr")
         self.app.config.data["radial_menu_active"] = self.var_radial.get()
+        self.app.config.data["close_quits_app"] = self.var_close_quits.get()
         self.app.config.data["language"] = self.var_language.get()
         self.app.config.data["keyboard_layout"] = self.var_keyboard_layout.get()
         self.app.i18n.set_locale(self.var_language.get())
@@ -130,6 +141,8 @@ class SettingsWindow(ctk.CTkToplevel):
         self.lbl_settings_radial.configure(text=self.app.i18n.t("settings_radial", "Roue de Focus (Radiale)"))
         self.sw_radial.configure(text=self.app.i18n.t("settings_radial_enable", "Activer la roue"))
         self.lbl_hk.configure(text=self.app.i18n.t("settings_hotkey", "Raccourci :"))
+        self.lbl_settings_window.configure(text=self.app.i18n.t("settings_window", "Fenêtre"))
+        self.sw_close_quits.configure(text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit dans la barre des tâches"))
         self.lbl_language.configure(text=self.app.i18n.t("settings_language", "Langue"))
         self.lbl_keyboard.configure(text=self.app.i18n.t("settings_keyboard_layout", "Disposition clavier"))
         self.btn_close.configure(text=self.app.i18n.t("settings_close", "Fermer"))
@@ -151,7 +164,7 @@ class OrganizerGUI:
         self.root.geometry(f"{win_w}x{win_h}+{x_pos}+{y_pos}") 
         
         self.root.attributes("-topmost", True)
-        self.root.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close_window)
         self.original_app_refresh = self.app.refresh
 
         
@@ -679,9 +692,17 @@ class OrganizerGUI:
         self.root.withdraw()
         self.is_visible = False
 
+    def on_close_window(self):
+        """ Croix de la fenêtre : quitte DOSOFT ou le cache selon l'option choisie """
+        if self.app.config.data.get("close_quits_app", False):
+            self.app.quit_app()
+        else:
+            self.hide_to_tray()
+
     def toggle_visibility(self):
         """ Alterne entre l'affichage et la mise en veille dans la barre des tâches """
-        if self.is_visible:
+        # Une fenêtre réduite dans la barre des tâches doit être réaffichée, pas cachée
+        if self.is_visible and self.root.state() != "iconic":
             self.hide_to_tray()
         else:
             self.root.deiconify()

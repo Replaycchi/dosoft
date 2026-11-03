@@ -99,7 +99,7 @@ class OrganizerApp:
 
     def toggle_from_tray(self, icon, item):
         def safe_toggle():
-            if self.gui.root.state() == 'withdrawn':
+            if self.gui.root.state() in ('withdrawn', 'iconic'):
                 self.gui.root.deiconify()
                 self.gui.root.lift()
                 self.gui.root.focus_force()
