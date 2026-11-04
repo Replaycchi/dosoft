@@ -8,6 +8,8 @@
   "settings_window": "Janela",
   "settings_close_quits": "✖ fecha o DOSOFT, ➖ minimiza perto do relógio",
   "tooltip_close_quits": "Desativado: ✖ esconde o DOSOFT perto do relógio, ➖ minimiza na barra de tarefas",
+  "settings_remember_compact": "Reabrir no modo compacto se eu sair nesse modo",
+  "tooltip_remember_compact": "Desativado: o DOSOFT abre sempre na janela completa",
   "settings_language": "Idioma",
   "settings_keyboard_layout": "Layout do teclado",
   "none": "Nenhum",

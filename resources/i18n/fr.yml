@@ -8,6 +8,8 @@
   "settings_window": "Fenêtre",
   "settings_close_quits": "✖ quitte DOSOFT, ➖ réduit près de l'horloge",
   "tooltip_close_quits": "Désactivé : ✖ cache DOSOFT près de l'horloge, ➖ réduit dans la barre des tâches",
+  "settings_remember_compact": "Rouvrir en mode compact si je quitte dans ce mode",
+  "tooltip_remember_compact": "Désactivé : DOSOFT s'ouvre toujours en fenêtre complète",
   "settings_language": "Langue",
   "settings_keyboard_layout": "Disposition clavier",
   "none": "Aucun",

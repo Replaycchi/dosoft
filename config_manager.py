@@ -44,6 +44,7 @@ class Config:
             "pause_key": "",
             "hotkeys_only_in_game": True,
             "compact_mode": False,
+            "remember_compact_mode": True,
             "compact_pos": "",
             "window_geometry": "",
             # --- NOUVEAU : Gestionnaire de Binds Avancé DOSOFT ---

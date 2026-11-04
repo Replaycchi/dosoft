@@ -8,6 +8,8 @@
   "settings_window": "Window",
   "settings_close_quits": "✖ quits DOSOFT, ➖ minimizes next to the clock",
   "tooltip_close_quits": "Off: ✖ hides DOSOFT next to the clock, ➖ minimizes to the taskbar",
+  "settings_remember_compact": "Reopen in compact mode if I quit in this mode",
+  "tooltip_remember_compact": "Off: DOSOFT always opens in the full window",
   "settings_language": "Language",
   "settings_keyboard_layout": "Keyboard layout",
   "none": "None",

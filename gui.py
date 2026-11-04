@@ -69,6 +69,11 @@ class SettingsWindow(ctk.CTkToplevel):
         self.sw_close_quits.pack(pady=10, padx=10, anchor="w")
         self.parent.bind_i18n_tooltip(self.sw_close_quits, "tooltip_close_quits", "Désactivé : ✖ cache DOSOFT près de l'horloge, ➖ réduit dans la barre des tâches")
 
+        self.var_remember_compact = ctk.BooleanVar(value=self.app.config.data.get("remember_compact_mode", True))
+        self.sw_remember_compact = ctk.CTkSwitch(frame_window, text=self.app.i18n.t("settings_remember_compact", "Rouvrir en mode compact si je quitte dans ce mode"), variable=self.var_remember_compact, command=self.save_settings)
+        self.sw_remember_compact.pack(pady=(0, 10), padx=10, anchor="w")
+        self.parent.bind_i18n_tooltip(self.sw_remember_compact, "tooltip_remember_compact", "Désactivé : DOSOFT s'ouvre toujours en fenêtre complète")
+
         self.lbl_settings_hotkeys = ctk.CTkLabel(self.scroll_container, text=self.app.i18n.t("settings_hotkeys", "Raccourcis"), font=title_font)
         self.lbl_settings_hotkeys.pack(pady=(20, 5))
         frame_hotkeys = ctk.CTkFrame(self.scroll_container)
@@ -120,6 +125,7 @@ class SettingsWindow(ctk.CTkToplevel):
         previous_language = self.app.config.data.get("language", "fr")
         self.app.config.data["radial_menu_active"] = self.var_radial.get()
         self.app.config.data["close_quits_app"] = self.var_close_quits.get()
+        self.app.config.data["remember_compact_mode"] = self.var_remember_compact.get()
         self.app.config.data["hotkeys_only_in_game"] = self.var_only_in_game.get()
         self.app.config.data["language"] = self.var_language.get()
         self.app.config.data["keyboard_layout"] = self.var_keyboard_layout.get()
@@ -158,6 +164,7 @@ class SettingsWindow(ctk.CTkToplevel):
         self.sw_only_in_game.configure(text=self.app.i18n.t("settings_hotkeys_only_game", "Actifs uniquement dans Dofus et DOSOFT"))
         self.lbl_settings_window.configure(text=self.app.i18n.t("settings_window", "Fenêtre"))
         self.sw_close_quits.configure(text=self.app.i18n.t("settings_close_quits", "✖ quitte DOSOFT, ➖ réduit près de l'horloge"))
+        self.sw_remember_compact.configure(text=self.app.i18n.t("settings_remember_compact", "Rouvrir en mode compact si je quitte dans ce mode"))
         self.lbl_language.configure(text=self.app.i18n.t("settings_language", "Langue"))
         self.lbl_keyboard.configure(text=self.app.i18n.t("settings_keyboard_layout", "Disposition clavier"))
         self.btn_close.configure(text=self.app.i18n.t("settings_close", "Fermer"))
@@ -333,8 +340,10 @@ class OrganizerGUI:
         
         self.skin_cache = {}
 
-        if cfg.get("compact_mode", False):
-            self.root.after(500, self.enter_compact_mode)
+        cfg["compact_mode"] = cfg.get("compact_mode", False) and cfg.get("remember_compact_mode", True)
+        if cfg["compact_mode"]:
+            self.root.withdraw() # Avant le premier affichage : sinon la fenêtre apparaît puis disparaît
+            self.root.after(100, self.enter_compact_mode)
 
     def apply_translations(self):
         none_label = self.app.i18n.t("none", "Aucun")
@@ -428,11 +437,12 @@ class OrganizerGUI:
         command = self.app.logic.get_invite_command()
         if not command:
             self.show_temporary_message(self.app.i18n.t("msg_invite_empty", "⚠️ Aucun personnage à inviter !"), "#e67e22")
-            return
+            return False
         self.root.clipboard_clear()
         self.root.clipboard_append(command)
         self.root.update()
         self.show_temporary_message(self.app.i18n.t("msg_invite_copied", "📋 Commande /invite copiée !"), "#27ae60")
+        return True
 
     def toggle_tooltips_setting(self):
         self.app.config.data["show_tooltips"] = self.var_tooltips.get()
@@ -827,6 +837,7 @@ class CompactWindow(ctk.CTkToplevel):
         self.configure(fg_color=self.BG_COLOR)
         self.head_buttons = {}
         self.focused_hwnd = None
+        self.invite_job = None
         self.drag_offset = (0, 0)
 
         self.handle = ctk.CTkLabel(self, text="⠿", width=18, font=ctk.CTkFont(size=18))
@@ -841,6 +852,11 @@ class CompactWindow(ctk.CTkToplevel):
 
         # Petits boutons discrets, empilés pour ne presque pas élargir la barre
         tool_style = dict(width=20, height=20, corner_radius=4, fg_color="transparent", text_color="#95a5a6")
+        self.tool_text_color = tool_style["text_color"]
+        self.btn_invite = ctk.CTkButton(self, text="✉", hover_color="#3b4252", command=self.copy_invite, **tool_style)
+        self.btn_invite.pack(side="left", padx=(2, 0))
+        self.parent.bind_i18n_tooltip(self.btn_invite, "tooltip_copy_invite", "Copier la commande pour inviter la team sélectionnée en groupe")
+
         self.frame_tools = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_tools.pack(side="left", padx=(2, 4))
 
@@ -896,7 +912,19 @@ class CompactWindow(ctk.CTkToplevel):
 
     def destroy(self):
         self.after_cancel(self.highlight_job)
+        if self.invite_job: self.after_cancel(self.invite_job)
         super().destroy()
+
+    def copy_invite(self):
+        """ Le message habituel s'affiche dans la fenêtre cachée : l'icône sert de confirmation """
+        copied = self.parent.copy_invite_command()
+        self.btn_invite.configure(text="✓" if copied else "!", text_color="#2ecc71" if copied else "#e67e22")
+        if self.invite_job: self.after_cancel(self.invite_job)
+        self.invite_job = self.after(1200, self.reset_invite_icon)
+
+    def reset_invite_icon(self):
+        self.invite_job = None
+        self.btn_invite.configure(text="✉", text_color=self.tool_text_color)
 
     def update_pause_indicator(self):
         self.handle.configure(text_color="#e74c3c" if self.app.hotkeys_paused else "#ecf0f1")
